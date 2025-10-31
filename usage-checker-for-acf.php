@@ -42,6 +42,7 @@ function uc_acf_admin_page() {
 	}
 	$show_field = isset( $_GET['field'] ) ? sanitize_text_field( wp_unslash( $_GET['field'] ) ) : ''; 
 	$action = isset( $_GET['action_view'] ) ? sanitize_text_field( wp_unslash( $_GET['action_view'] ) ) : '';
+	$uc_meta_key = isset( $_GET['uc_meta_key'] ) ? sanitize_text_field( wp_unslash( $_GET['uc_meta_key'] ) ) : '';
 
 	$post_types = get_post_types( array( 'public' => true ), 'objects' );
 
@@ -63,6 +64,64 @@ function uc_acf_admin_page() {
 	echo '</select> ';
 	submit_button( 'Load fields', 'secondary', '', false );
 	echo '</form>';
+
+	// Build a list of distinct meta keys present on posts of this post type so the user
+	// can directly check any postmeta key (not just ACF-declared fields).
+	$meta_keys = $wpdb->get_col( $wpdb->prepare(
+		"SELECT DISTINCT pm.meta_key
+		 FROM {$wpdb->postmeta} pm
+		 JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+		 WHERE p.post_type = %s
+		 ORDER BY pm.meta_key ASC",
+		$post_type
+	) );
+	// Include underscore-prefixed meta keys as well, but exclude known core/internal keys
+	$core_underscore_keys = array(
+		'_edit_lock',
+		'_edit_last',
+		'_wp_old_slug',
+		'_thumbnail_id',
+		'_wp_attached_file',
+		'_wp_attachment_metadata',
+		'_wp_attachment_backup',
+		'_wp_trash_meta_time',
+	);
+	$meta_keys = array_values( array_filter( (array) $meta_keys, function( $k ) use ( $core_underscore_keys ) {
+		if ( '' === $k ) {
+			return false;
+		}
+		// allow underscore keys unless they're in the core blacklist
+		if ( '_' === substr( $k, 0, 1 ) ) {
+			return ! in_array( $k, $core_underscore_keys, true );
+		}
+		return true;
+	} ) );
+
+	if ( ! empty( $meta_keys ) ) {
+		echo '<form method="get" action="' . esc_url( $page_base ) . '">';
+		echo '<input type="hidden" name="page" value="acf-usage-checker" />';
+		echo '<input type="hidden" name="uc_post_type" value="' . esc_attr( $post_type ) . '" />';
+		echo '<label for="uc_meta_key">Post meta key: </label>';
+		echo '<select id="uc_meta_key" name="uc_meta_key">';
+		echo '<option value="">(choose a meta key)</option>';
+		foreach ( $meta_keys as $mk ) {
+			$sel = $uc_meta_key === $mk ? 'selected' : '';
+			echo '<option value="' . esc_attr( $mk ) . '" ' . $sel . '>' . esc_html( $mk ) . '</option>';
+		}
+		echo '</select> ';
+		if ( $uc_meta_key ) {
+			$meta_view_link = add_query_arg( array(
+				'page' => 'acf-usage-checker',
+				'uc_post_type' => $post_type,
+				'uc_meta_key' => $uc_meta_key,
+				'action_view' => 'show_meta',
+			), $page_base );
+			echo '<a class="button" href="' . esc_url( $meta_view_link ) . '">Show posts for meta key</a>';
+		} else {
+			submit_button( 'Refresh meta keys', 'secondary', '', false );
+		}
+		echo '</form>';
+	}
 
 	// Determine candidate fields
 	$fields = array();
@@ -171,6 +230,38 @@ function uc_acf_admin_page() {
 			echo '<ul>'; 
 			foreach ( $post_ids as $pid ) {
 				$value = get_post_meta( $pid, $show_field, true );
+				if ( ! uc_acf_value_is_meaningful( $value ) ) {
+					continue;
+				}
+				$post = get_post( $pid );
+				if ( ! $post ) {
+					continue;
+				}
+				$permalink = get_edit_post_link( $pid );
+				echo '<li>' . sprintf( '<a href="%s">%s</a> — %s', esc_url( $permalink ), esc_html( get_the_title( $pid ) ? get_the_title( $pid ) : "(ID $pid)" ), esc_html( uc_acf_value_summary( $value ) ) ) . '</li>';
+			}
+			echo '</ul>';
+		}
+	}
+
+	// If requested, show posts using a selected postmeta key (uc_meta_key)
+	if ( 'show_meta' === $action && $uc_meta_key ) {
+		echo '<h2>Posts using meta key ' . esc_html( $uc_meta_key ) . '</h2>';
+		$post_ids = $wpdb->get_col( $wpdb->prepare(
+			"SELECT DISTINCT pm.post_id
+			 FROM {$wpdb->postmeta} pm
+			 JOIN {$wpdb->posts} p ON pm.post_id = p.ID
+			 WHERE p.post_type = %s AND pm.meta_key = %s",
+			 $post_type,
+			 $uc_meta_key
+		) );
+
+		if ( empty( $post_ids ) ) {
+			echo '<p>No posts have this meta key present.</p>';
+		} else {
+			echo '<ul>'; 
+			foreach ( $post_ids as $pid ) {
+				$value = get_post_meta( $pid, $uc_meta_key, true );
 				if ( ! uc_acf_value_is_meaningful( $value ) ) {
 					continue;
 				}
