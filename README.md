@@ -1,4 +1,4 @@
-# Usage Checker for ACF
+# FieldRadar
 
 Lightweight admin tool to discover which ACF/post-meta fields for a post type are actually populated and which posts use them.
 
@@ -11,12 +11,12 @@ Lightweight admin tool to discover which ACF/post-meta fields for a post type ar
 
 ## Installation
 
-1. Copy the `usage-checker-for-acf` folder to your site's `wp-content/plugins` directory.
+1. Copy the `fieldradar` folder to your site's `wp-content/plugins` directory.
 2. Activate the plugin on the Plugins screen.
 
 ## Usage
 
-In WordPress Admin go to: Tools → ACF Usage Checker
+In WordPress Admin go to: Tools → FieldRadar
 
 - Select a post type (the plugin lists public post types).
 - Click "Load fields" to list candidate fields/meta keys for that post type.
@@ -30,11 +30,11 @@ Examples:
 
 - Open the tool for posts:
 
-  https://example.test/wp-admin/tools.php?page=acf-usage-checker&uc_post_type=post
+  https://example.test/wp-admin/tools.php?page=fieldradar&uc_post_type=post
 
 - Open the tool for attachments (media):
 
-  https://example.test/wp-admin/tools.php?page=acf-usage-checker&uc_post_type=attachment
+  https://example.test/wp-admin/tools.php?page=fieldradar&uc_post_type=attachment
 
 Note: legacy `post_type` is accepted for direct links but the UI uses `uc_post_type` to avoid routing collisions.
 
@@ -56,9 +56,9 @@ Note: legacy `post_type` is accepted for direct links but the UI uses `uc_post_t
 
 ## Troubleshooting
 
-- If you see a "Cannot load acf-usage-checker" or similar error, it likely means WordPress admin attempted to resolve the menu parent incorrectly due to `post_type` being present on the request. Try opening the tool with `uc_post_type` instead of `post_type`, for example:
+ - If you see a "Cannot load FieldRadar" or similar error, it likely means WordPress admin attempted to resolve the menu parent incorrectly due to `post_type` being present on the request. Try opening the tool with `uc_post_type` instead of `post_type`, for example:
 
-  https://your-site.test/wp-admin/tools.php?page=acf-usage-checker&uc_post_type=attachment
+  https://your-site.test/wp-admin/tools.php?page=fieldradar&uc_post_type=attachment
 
 - If fields do not appear when ACF is active, confirm ACF is enabled and that field groups are set to show for the selected post type.
 
