@@ -11,6 +11,7 @@ A lightweight WordPress plugin to discover which meta fields for a post type are
 
 1. Copy the `fieldradar` folder to your site's `wp-content/plugins` directory.
 2. Activate the plugin on the Plugins screen.
+3. Go to Tools -> FieldRadar
 
 ## Usage
 
